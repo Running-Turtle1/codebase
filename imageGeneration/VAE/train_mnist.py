@@ -6,22 +6,23 @@ from VAE import *
 # 1. 超参
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 batch_size = 128
-z_dim = 20
-epochs = 15
-lr = 1e-3
+z_dim = 32       # 20->32: 隐空间更大，生成质量更好（MNIST 10 类，32 足够）
+epochs = 30      # 15->30: VAE 收敛慢，多训几轮
+lr = 1e-3       # Adam 常用 1e-3，可配合 scheduler 衰减
 
 # 2. dataset
 train_loader = torch.utils.data.DataLoader(
     datasets.MNIST('./data', train=True, download=True, transform=transforms.ToTensor()),
     batch_size=batch_size,
     shuffle=True,
-    num_workers=4,
+    num_workers=16,
     pin_memory=True
 )
 
 # 3. train
-model = VAE().to(device)
+model = VAE(z_dim=z_dim).to(device)
 optimizer = torch.optim.Adam(model.parameters(), lr=lr)
+scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=10, gamma=0.5)  # 每 10 epoch lr 减半
 
 # 4. train
 def train(epoch):
@@ -53,3 +54,4 @@ if __name__ == '__main__':
     for epoch in range(1, epochs + 1):
         train(epoch)
         test_generation(epoch)
+        scheduler.step()
