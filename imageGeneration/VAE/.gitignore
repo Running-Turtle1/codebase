@@ -1,6 +1,10 @@
 # 本地数据与输出
 data/
 results/
+results_dim1/
+results_dim2/
+weights_dim1/
+weights_dim2/
 
 # Python 缓存
 __pycache__/
