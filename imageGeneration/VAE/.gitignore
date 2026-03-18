@@ -1,0 +1,12 @@
+# 本地数据与输出
+data/
+results/
+
+# Python 缓存
+__pycache__/
+*.pyc
+
+# 模型权重
+*.pt
+*.pth
+*.ckpt
