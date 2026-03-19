@@ -4,6 +4,8 @@ import torch.optim as optim
 from torch.utils.data import DataLoader, Dataset
 from torchvision import datasets
 from torchvision.transforms import transforms
+from torchvision.utils import save_image
+import os
 
 
 z_dim = 100           # 潜变量维度
@@ -64,13 +66,34 @@ train_loader = torch.utils.data.DataLoader(
 gen = gen.to(device)
 disc = disc.to(device)
 
+results_dir = 'results_gan'
+os.makedirs(results_dir, exist_ok=True)
+
+
+def save_generated_samples(epoch=None, n=64):
+    """保存生成样本，[-1,1] 转 [0,1] 后保存"""
+    gen.eval()
+    with torch.no_grad():
+        z = torch.randn(n, z_dim).to(device)
+        fake = gen(z)
+        fake = (fake + 1) / 2  # [-1,1] -> [0,1]
+        fake = fake.view(n, 1, 28, 28)
+        path = f'{results_dir}/sample_{epoch}.png' if epoch else f'{results_dir}/final.png'
+        save_image(fake, path, nrow=8)
+    gen.train()
+    return path
+
+
 for epoch in range(num_epochs):
     print(f'Epoch {epoch + 1}/{num_epochs}')
+    epoch_loss_disc = 0.0
+    epoch_loss_gen = 0.0
+    num_batches = 0
+
     for batch_idx, (real_images, _) in enumerate(train_loader):
-        batch_size_cur = real_images.shape[0]
+        batch_size_cur = real_images.shape[0] # 最后一个 batch 可能跟 batch_size 不一样
         real_images = real_images.view(-1, 784).to(device)
 
-        # 随机噪声
         z = torch.randn(batch_size_cur, z_dim).to(device)
         fake_images = gen(z)
 
@@ -96,3 +119,19 @@ for epoch in range(num_epochs):
         gen.zero_grad()
         loss_gen.backward()
         opt_gen.step()
+
+        epoch_loss_disc += loss_disc.item()
+        epoch_loss_gen += loss_gen.item()
+        num_batches += 1
+
+    avg_loss_d = epoch_loss_disc / num_batches
+    avg_loss_g = epoch_loss_gen / num_batches
+    print(f'  D_loss: {avg_loss_d:.4f}  G_loss: {avg_loss_g:.4f}')
+
+    if (epoch + 1) % 10 == 0 or epoch == 0:
+        path = save_generated_samples(epoch + 1)
+        print(f'  -> Saved: {path}')
+
+# 训练结束，保存最终效果
+final_path = save_generated_samples(epoch=None)
+print(f'\n===== Training done. Final samples: {final_path} =====')
