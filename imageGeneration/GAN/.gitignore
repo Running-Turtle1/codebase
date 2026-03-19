@@ -1,0 +1,9 @@
+# 生成结果
+results_gan/
+
+# 数据
+data/
+
+# Python
+__pycache__/
+*.pyc
